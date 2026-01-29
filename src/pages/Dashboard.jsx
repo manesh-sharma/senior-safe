@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWallet } from '../context/WalletContext';
 import Card from '../components/ui/Card';
-import { ScanLine, Send, Wallet, Receipt, ChevronRight, QrCode, UserPlus, ShieldAlert, Calculator, CreditCard, User, Phone } from 'lucide-react';
+import { ScanLine, Send, Wallet, Receipt, ChevronRight, QrCode, UserPlus, ShieldAlert, Calculator, CreditCard, User, Phone, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
@@ -60,12 +60,13 @@ const Dashboard = () => {
             <div className="grid grid-cols-4 gap-2">
                 <ActionButton to="/scan" icon={ScanLine} label="Scan QR" />
                 <ActionButton to="/send" icon={Send} label="To Contact" />
-                <ActionButton to="/voucher" icon={QrCode} label="P2P Cash" color="bg-emerald-600" />
+                <ActionButton to="/receive" icon={Download} label="Receive" color="bg-emerald-600" />
                 <ActionButton to="/history" icon={Receipt} label="History" color="bg-blue-700" />
             </div>
 
             {/* --- More Features --- */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
+                <ActionButton to="/voucher" icon={QrCode} label="P2P Cash" color="bg-blue-800" />
                 <ActionButton to="/scam-lab" icon={ShieldAlert} label="Scam Lab" color="bg-red-600" />
                 <ActionButton to="/loan-center" icon={Calculator} label="Loans" color="bg-blue-800" />
                 <ActionButton to="/bills" icon={CreditCard} label="Bills" color="bg-emerald-600" />
