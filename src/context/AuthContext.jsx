@@ -2,38 +2,50 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { googleLogout } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import PropTypes from 'prop-types';
+import { getOrCreateUser, isSupabaseConfigured } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
 const STORAGE_KEY = 'seniorsafe_user';
+const DB_USER_KEY = 'seniorsafe_db_user';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [dbUser, setDbUser] = useState(null); // Supabase database user
   const [isLoading, setIsLoading] = useState(true);
 
   // Load user from localStorage on mount
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem(STORAGE_KEY);
+      const savedDbUser = localStorage.getItem(DB_USER_KEY);
+      
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         // Check if token is still valid (not expired)
         if (parsed.exp && parsed.exp * 1000 > Date.now()) {
           setUser(parsed);
+          
+          // Also restore dbUser if available
+          if (savedDbUser) {
+            setDbUser(JSON.parse(savedDbUser));
+          }
         } else {
           localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(DB_USER_KEY);
         }
       }
     } catch (error) {
       console.error('Error loading user from storage:', error);
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(DB_USER_KEY);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   // Handle successful Google login
-  const handleGoogleSuccess = (credentialResponse) => {
+  const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const decoded = jwtDecode(credentialResponse.credential);
       const userData = {
@@ -48,6 +60,24 @@ export function AuthProvider({ children }) {
       
       setUser(userData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+
+      // Sync with Supabase if configured
+      if (isSupabaseConfigured()) {
+        try {
+          const { user: supabaseUser, error } = await getOrCreateUser(userData);
+          if (supabaseUser && !error) {
+            setDbUser(supabaseUser);
+            localStorage.setItem(DB_USER_KEY, JSON.stringify(supabaseUser));
+            console.log('✅ User synced with Supabase:', supabaseUser.email);
+          } else if (error) {
+            console.error('Error syncing user with Supabase:', error);
+          }
+        } catch (syncError) {
+          console.error('Supabase sync failed:', syncError);
+          // Continue without Supabase - app will work in offline mode
+        }
+      }
+
       return userData;
     } catch (error) {
       console.error('Error decoding credential:', error);
@@ -59,11 +89,14 @@ export function AuthProvider({ children }) {
   const logout = () => {
     googleLogout();
     setUser(null);
+    setDbUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DB_USER_KEY);
   };
 
   const value = {
     user,
+    dbUser, // Supabase database user (has the UUID for queries)
     isAuthenticated: !!user,
     isLoading,
     handleGoogleSuccess,

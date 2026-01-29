@@ -17,12 +17,13 @@ import LoanCenter from './pages/LoanCenter';
 import EMIPayment from './pages/EMIPayment';
 import Achievements from './pages/Achievements';
 import Login from './pages/Login';
+import Profile from './pages/Profile';
 
 // Google OAuth Client ID - Replace with your own from Google Cloud Console
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
 
 // Full-screen pages that don't use the Layout
-const fullScreenPages = ['/send', '/scan', '/voucher', '/scam-lab', '/loan-center', '/bills', '/login'];
+const fullScreenPages = ['/send', '/scan', '/voucher', '/scam-lab', '/loan-center', '/bills', '/login', '/profile'];
 
 function AppContent() {
   const location = useLocation();
@@ -47,6 +48,7 @@ function AppContent() {
           <Route path="/scam-lab" element={<ScamLab />} />
           <Route path="/loan-center" element={<LoanCenter />} />
           <Route path="/bills" element={<EMIPayment />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </ProtectedRoute>
     );
