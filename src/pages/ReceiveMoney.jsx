@@ -12,17 +12,16 @@ const ReceiveMoney = () => {
     const [showQR, setShowQR] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    // Generate QR data payload
+    // Generate QR data payload - keep it compact for reliable scanning
     const generateQRData = () => {
-        return JSON.stringify({
-            type: 'SENIORSAFE_PAY',
-            userId: dbUser?.id,
-            name: user?.name || 'Unknown',
-            email: user?.email,
-            picture: user?.picture,
-            amount: amount ? parseInt(amount) : null,
-            timestamp: Date.now()
-        });
+        const data = {
+            t: 'PAY', // shortened type
+            id: dbUser?.id,
+            n: user?.name || 'Unknown',
+            e: user?.email,
+            a: amount ? parseInt(amount) : null
+        };
+        return JSON.stringify(data);
     };
 
     const handleGenerateQR = () => {
@@ -159,12 +158,14 @@ const ReceiveMoney = () => {
 
                             {/* QR Code */}
                             <div className="flex justify-center mb-4">
-                                <div className="p-4 bg-white border-4 border-slate-900 rounded-2xl">
+                                <div className="p-6 bg-white border-4 border-slate-900 rounded-2xl">
                                     <QRCodeSVG 
                                         value={generateQRData()} 
-                                        size={200} 
-                                        level="H"
+                                        size={220} 
+                                        level="L"
                                         includeMargin={true}
+                                        bgColor="#ffffff"
+                                        fgColor="#000000"
                                     />
                                 </div>
                             </div>

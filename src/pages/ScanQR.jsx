@@ -78,13 +78,14 @@ const ScanQR = () => {
             }
 
             // Check if it's a P2P payment QR (from Receive Money page)
-            if (parsed.type === 'SENIORSAFE_PAY' && parsed.userId) {
+            // Support both old format (type: SENIORSAFE_PAY) and new compact format (t: PAY)
+            if ((parsed.type === 'SENIORSAFE_PAY' && parsed.userId) || (parsed.t === 'PAY' && parsed.id)) {
                 setScannedPayee({
-                    id: parsed.userId,
-                    name: parsed.name,
-                    email: parsed.email,
-                    picture: parsed.picture,
-                    amount: parsed.amount,
+                    id: parsed.userId || parsed.id,
+                    name: parsed.name || parsed.n,
+                    email: parsed.email || parsed.e,
+                    picture: parsed.picture || null,
+                    amount: parsed.amount || parsed.a,
                     isUser: true
                 });
                 setShowPaymentConfirm(true);
