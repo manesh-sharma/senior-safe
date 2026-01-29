@@ -1,79 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import { Camera, X } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
 
 const QRScanner = ({ onScan, onClose }) => {
     const [error, setError] = useState(null);
-    const [isScanning, setIsScanning] = useState(false);
-    const scannerRef = useRef(null);
-    const containerRef = useRef(null);
 
-    const stopScanner = async () => {
-        if (scannerRef.current) {
-            try {
-                await scannerRef.current.stop();
-                scannerRef.current.clear();
-            } catch (e) {
-                // Ignore stop errors
-            }
-            scannerRef.current = null;
-        }
-        setIsScanning(false);
-    };
-
-    const startScanner = async () => {
-        setError(null);
-        
-        try {
-            const html5QrCode = new Html5Qrcode("qr-reader");
-            scannerRef.current = html5QrCode;
-
-            await html5QrCode.start(
-                { facingMode: "environment" },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                },
-                (decodedText) => {
-                    // Success callback
-                    stopScanner();
-                    onScan(decodedText);
-                },
-                (errorMessage) => {
-                    // Ignore scan errors - they happen when no QR visible
-                }
-            );
-            
-            setIsScanning(true);
-        } catch (err) {
-            console.error('Scanner error:', err);
-            if (err.includes && err.includes('NotAllowedError')) {
-                setError("Camera permission denied. Please allow camera access.");
-            } else if (err.includes && err.includes('NotFoundError')) {
-                setError("No camera found on this device.");
-            } else {
-                setError("Could not start camera. Please try again.");
-            }
+    const handleScan = (result) => {
+        if (result && result.length > 0) {
+            onScan(result[0].rawValue);
         }
     };
 
-    // Start scanner automatically when component mounts
-    useEffect(() => {
-        // Small delay to ensure DOM is ready
-        const timer = setTimeout(() => {
-            startScanner();
-        }, 500);
+    const handleError = (err) => {
+        console.error('QR Scanner error:', err);
+        setError("Camera not available. Use test button below.");
+    };
 
-        return () => {
-            clearTimeout(timer);
-            stopScanner();
-        };
-    }, []);
-
-    const handleClose = () => {
-        stopScanner();
-        onClose();
+    // Test with sample P2P QR data
+    const testP2PPayment = () => {
+        const testQRData = JSON.stringify({
+            type: 'SENIORSAFE_PAY',
+            userId: 'test-user-123',
+            name: 'Test User',
+            email: 'testuser@example.com',
+            picture: null,
+            amount: 100,
+            timestamp: Date.now()
+        });
+        onScan(testQRData);
     };
 
     return (
@@ -82,7 +36,7 @@ const QRScanner = ({ onScan, onClose }) => {
             <div className="bg-slate-900 p-4 flex items-center justify-between">
                 <h3 className="text-white font-bold text-xl">Scan QR Code</h3>
                 <button
-                    onClick={handleClose}
+                    onClick={onClose}
                     className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30"
                 >
                     <X size={24} />
@@ -90,42 +44,88 @@ const QRScanner = ({ onScan, onClose }) => {
             </div>
 
             {/* Camera View */}
-            <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-                {/* QR Scanner Container */}
-                <div 
-                    id="qr-reader" 
-                    ref={containerRef}
-                    className="w-full h-full"
-                    style={{ minHeight: '300px' }}
-                />
-
-                {/* Error State */}
-                {error && (
-                    <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-center p-6">
+            <div className="flex-1 relative bg-black">
+                {!error ? (
+                    <>
+                        <Scanner
+                            onScan={handleScan}
+                            onError={handleError}
+                            constraints={{ facingMode: 'environment' }}
+                            styles={{
+                                container: { 
+                                    width: '100%', 
+                                    height: '100%',
+                                    position: 'relative'
+                                },
+                                video: { 
+                                    objectFit: 'cover',
+                                    width: '100%',
+                                    height: '100%'
+                                }
+                            }}
+                            allowMultiple={false}
+                            scanDelay={500}
+                        />
+                        
+                        {/* Scan Region Boundary */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            {/* Dark overlay with transparent center */}
+                            <div className="absolute inset-0 bg-black/50" />
+                            
+                            {/* Clear scanning area */}
+                            <div className="relative w-72 h-72">
+                                {/* Cut out the center */}
+                                <div className="absolute inset-0 bg-black/50" style={{
+                                    clipPath: 'polygon(0% 0%, 0% 100%, 100% 100%, 100% 0%, 0% 0%, 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%)'
+                                }} />
+                                
+                                {/* Border frame */}
+                                <div className="absolute inset-0 border-4 border-white/30 rounded-2xl" />
+                                
+                                {/* Corner accents */}
+                                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-blue-500 rounded-tl-2xl" />
+                                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-blue-500 rounded-tr-2xl" />
+                                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-blue-500 rounded-bl-2xl" />
+                                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-blue-500 rounded-br-2xl" />
+                                
+                                {/* Scanning line animation */}
+                                <div className="absolute left-4 right-4 h-1 bg-blue-500 rounded-full top-1/2 animate-pulse shadow-lg shadow-blue-500/50" />
+                            </div>
+                        </div>
+                        
+                        {/* Instructions */}
+                        <div className="absolute bottom-6 left-0 right-0 text-center">
+                            <p className="text-white text-lg font-medium bg-black/50 mx-auto px-4 py-2 rounded-full inline-block">
+                                Point camera at QR code
+                            </p>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-white p-6 text-center">
                         <Camera size={64} className="mb-4 text-red-500" />
-                        <p className="text-white text-lg mb-6">{error}</p>
+                        <p className="text-lg mb-4">{error}</p>
                         <button
-                            onClick={startScanner}
-                            className="bg-white text-slate-900 px-8 py-4 rounded-xl font-bold text-lg"
+                            onClick={() => setError(null)}
+                            className="bg-blue-800 text-white px-6 py-3 rounded-xl font-bold"
                         >
                             Try Again
                         </button>
                     </div>
                 )}
-
-                {/* Loading State */}
-                {!isScanning && !error && (
-                    <div className="absolute inset-0 bg-black flex flex-col items-center justify-center">
-                        <Camera size={64} className="mb-4 text-blue-400 animate-pulse" />
-                        <p className="text-white text-lg">Starting camera...</p>
-                    </div>
-                )}
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-900 p-4">
+            <div className="bg-slate-900 p-4 space-y-3">
+                {/* Test Button for P2P payment */}
                 <button
-                    onClick={handleClose}
+                    onClick={testP2PPayment}
+                    className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-lg"
+                >
+                    📱 Test: Receive ₹100 Request
+                </button>
+                
+                <button
+                    onClick={onClose}
                     className="w-full bg-white text-slate-900 py-4 rounded-xl font-bold text-lg"
                 >
                     Cancel Scan
