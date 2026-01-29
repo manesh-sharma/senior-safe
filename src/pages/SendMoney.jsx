@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWallet } from '../context/WalletContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, AlertTriangle, ChevronRight } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, User, AlertTriangle, ChevronRight, Lock } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import PinPad from '../components/simulation/PinPad';
@@ -10,7 +10,7 @@ import SuccessScreen from '../components/simulation/SuccessScreen';
 const LARGE_AMOUNT_THRESHOLD = 5000;
 
 const SendMoney = () => {
-    const { balance, contacts, addTransaction } = useWallet();
+    const { balance, contacts, addTransaction, isPinSet, verifyPin } = useWallet();
     const navigate = useNavigate();
 
     // --- Flow State ---
@@ -18,6 +18,8 @@ const SendMoney = () => {
     const [selectedContact, setSelectedContact] = useState(null);
     const [amount, setAmount] = useState('');
     const [showLargeAmountWarning, setShowLargeAmountWarning] = useState(false);
+    const [pinError, setPinError] = useState('');
+    const [pinAttempts, setPinAttempts] = useState(0);
 
     // --- Handlers ---
     const handleSelectContact = (contact) => {
@@ -49,21 +51,38 @@ const SendMoney = () => {
             return;
         }
 
+        setPinError('');
+        setPinAttempts(0);
         setStep('pin');
     };
 
     const handleLargeAmountProceed = () => {
         setShowLargeAmountWarning(false);
+        setPinError('');
+        setPinAttempts(0);
         setStep('pin');
     };
 
-    const handlePinComplete = (_pin) => {
-        // Simulate PIN verification (always succeeds)
+    const handlePinComplete = (pin) => {
+        // Verify PIN if set
+        if (isPinSet) {
+            if (!verifyPin(pin)) {
+                setPinAttempts(prev => prev + 1);
+                if (pinAttempts >= 2) {
+                    setPinError('Too many wrong attempts. Please try again later.');
+                    setTimeout(() => {
+                        navigate('/');
+                    }, 2000);
+                    return;
+                }
+                setPinError('Incorrect PIN. Please try again.');
+                return;
+            }
+        }
+
+        // PIN verified or not set - proceed with transaction
         const numAmount = parseInt(amount);
-
-        // Add transaction
         addTransaction(numAmount, 'DEBIT', `Sent to ${selectedContact.name}`, selectedContact.name);
-
         setStep('success');
     };
 
@@ -72,6 +91,7 @@ const SendMoney = () => {
             setSelectedContact(null);
             setStep('select');
         } else if (step === 'pin') {
+            setPinError('');
             setStep('amount');
         } else {
             navigate('/');
@@ -207,16 +227,43 @@ const SendMoney = () => {
                             <p className="text-slate-600">to {selectedContact?.name}</p>
                         </div>
 
+                        {/* PIN Not Set Warning */}
+                        {!isPinSet && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 max-w-xs">
+                                <div className="flex items-start gap-2">
+                                    <Lock className="text-amber-600 flex-shrink-0 mt-0.5" size={18} />
+                                    <div>
+                                        <p className="text-sm text-amber-800">
+                                            <strong>No PIN set!</strong> Any PIN will work now.
+                                        </p>
+                                        <Link to="/profile" className="text-xs text-amber-700 underline">
+                                            Set your PIN for security →
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                             <p className="text-center text-slate-600 mb-4 font-medium">
                                 Enter your 4-digit PIN
                             </p>
-                            <PinPad onComplete={handlePinComplete} />
+                            <PinPad 
+                                onComplete={handlePinComplete} 
+                                error={pinError}
+                                key={pinAttempts} // Reset PinPad on error
+                            />
                         </div>
 
-                        <p className="text-xs text-slate-400 mt-4 text-center">
-                            This is a simulated PIN. Any 4 digits will work.
-                        </p>
+                        {isPinSet ? (
+                            <p className="text-xs text-slate-400 mt-4 text-center">
+                                Enter your secure PIN to confirm this transaction.
+                            </p>
+                        ) : (
+                            <p className="text-xs text-slate-400 mt-4 text-center">
+                                This is a simulated PIN. Any 4 digits will work.
+                            </p>
+                        )}
                     </div>
                 )}
             </div>
