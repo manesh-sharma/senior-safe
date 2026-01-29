@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, History, ShieldAlert, Award, Menu, LogOut, X } from 'lucide-react';
+import { Home, History, ShieldAlert, Award, Menu, LogOut, X, User, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PropTypes from 'prop-types';
@@ -32,8 +32,8 @@ const Layout = ({ children }) => {
         <div className="min-h-screen bg-surface flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden border-x border-slate-200">
             {/* --- Top Bar --- */}
             <header className="bg-white p-4 flex items-center justify-between border-b border-slate-200 sticky top-0 z-10">
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-brand-blue rounded-full flex items-center justify-center text-white font-bold text-xl cursor-default overflow-hidden">
+                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div className="w-10 h-10 bg-brand-blue rounded-full flex items-center justify-center text-white font-bold text-xl cursor-pointer overflow-hidden">
                         {user?.picture ? (
                             <img src={user.picture} alt={user.name} className="w-full h-full object-cover" />
                         ) : (
@@ -46,7 +46,7 @@ const Layout = ({ children }) => {
                             <p className="text-xs text-slate-500">Hi, {user.givenName}!</p>
                         )}
                     </div>
-                </div>
+                </Link>
                 <button 
                     className="p-2 hover:bg-slate-100 rounded-full" 
                     aria-label="Menu"
@@ -65,9 +65,17 @@ const Layout = ({ children }) => {
                             <p className="text-sm text-slate-500">{user.email}</p>
                         </div>
                     )}
+                    <Link
+                        to="/profile"
+                        onClick={() => setShowMenu(false)}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                        <Settings size={20} />
+                        <span className="font-medium">Profile & Settings</span>
+                    </Link>
                     <button
                         onClick={handleLogout}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-full px-4 py-3 flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors border-t border-slate-100"
                     >
                         <LogOut size={20} />
                         <span className="font-medium">Sign Out</span>
