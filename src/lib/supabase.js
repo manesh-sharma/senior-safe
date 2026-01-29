@@ -254,6 +254,57 @@ export const addContactToDb = async (userId, name, phone) => {
 }
 
 // =============================================
+// USER SEARCH
+// =============================================
+
+/**
+ * Search users by name or email
+ * Returns users excluding the current user
+ */
+export const searchUsers = async (query, currentUserId) => {
+  if (!query || query.length < 2) {
+    return { users: [], error: null }
+  }
+
+  // Build the query - search by name or email (case insensitive)
+  let queryBuilder = supabase
+    .from('users')
+    .select('id, google_id, name, email, picture')
+    .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
+    .limit(10)
+
+  // Exclude current user if provided
+  if (currentUserId) {
+    queryBuilder = queryBuilder.neq('id', currentUserId)
+  }
+
+  const { data, error } = await queryBuilder
+
+  const users = data?.map(u => ({
+    id: u.id,
+    googleId: u.google_id,
+    name: u.name,
+    email: u.email,
+    picture: u.picture
+  })) || []
+
+  return { users, error }
+}
+
+/**
+ * Get user by ID
+ */
+export const getUserById = async (userId) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, google_id, name, email, picture')
+    .eq('id', userId)
+    .single()
+
+  return { user: data, error }
+}
+
+// =============================================
 // STATS & ANALYTICS
 // =============================================
 
