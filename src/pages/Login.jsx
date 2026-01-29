@@ -28,32 +28,35 @@ function Login() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
-        <div className="animate-pulse text-brand-blue text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-brand-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-brand-blue text-xl font-semibold">Loading...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <div className="pt-12 pb-8 px-6 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-blue rounded-2xl mb-4 shadow-lg">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-brand-blue to-blue-600 rounded-3xl mb-4 shadow-2xl shadow-blue-500/50 pulse-glow">
           <Shield className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">SeniorSafe</h1>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">SeniorSafe</h1>
         <p className="text-lg text-gray-600">Learn Digital Payments Safely</p>
       </div>
 
       {/* Features */}
       <div className="px-6 mb-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-2xl p-6 space-y-4 border border-white/50">
           <h2 className="text-xl font-semibold text-gray-800 text-center mb-4">
             Why SeniorSafe?
           </h2>
           
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-4 group hover:bg-blue-50/50 p-3 rounded-2xl transition-all">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-md">
               <Smartphone className="w-6 h-6 text-brand-blue" />
             </div>
             <div>
@@ -64,8 +67,8 @@ function Login() {
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-4 group hover:bg-green-50/50 p-3 rounded-2xl transition-all">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-md">
               <Shield className="w-6 h-6 text-brand-green" />
             </div>
             <div>
@@ -76,8 +79,8 @@ function Login() {
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-4 group hover:bg-purple-50/50 p-3 rounded-2xl transition-all">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-md">
               <Star className="w-6 h-6 text-purple-600" />
             </div>
             <div>
@@ -88,8 +91,8 @@ function Login() {
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-4 group hover:bg-orange-50/50 p-3 rounded-2xl transition-all">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-md">
               <Users className="w-6 h-6 text-orange-600" />
             </div>
             <div>
@@ -104,15 +107,15 @@ function Login() {
 
       {/* Sign In Section */}
       <div className="px-6 pb-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+        <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-8 text-center border border-blue-100">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Get Started
           </h2>
           <p className="text-gray-600 mb-6">
             Sign in with your Google account to begin your learning journey
           </p>
 
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-4 scale-110 hover:scale-115 transition-transform">
             <GoogleLogin
               onSuccess={onSuccess}
               onError={onError}

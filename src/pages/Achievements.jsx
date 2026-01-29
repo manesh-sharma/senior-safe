@@ -11,60 +11,63 @@ const Achievements = () => {
     return (
         <div className="space-y-4">
             {/* XP & Level Card */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
+            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 text-white shadow-2xl shadow-orange-500/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 text-9xl opacity-10">🏆</div>
+                <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <p className="text-amber-100 text-sm">Current Level</p>
+                            <p className="text-3xl font-bold">{levelInfo.title}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-amber-100 text-sm">Total XP</p>
+                            <p className="text-2xl font-bold">{stats.totalXP}</p>
+                        </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
                     <div>
-                        <p className="text-amber-100 text-sm">Current Level</p>
-                        <p className="text-3xl font-bold">{levelInfo.title}</p>
+                        <div className="flex justify-between text-xs mb-1">
+                            <span>Level {levelInfo.level}</span>
+                            {levelInfo.nextLevel && <span>Level {levelInfo.level + 1}</span>}
+                        </div>
+                        <div className="h-4 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
+                            <div 
+                                className="h-full bg-gradient-to-r from-white to-amber-100 transition-all duration-500 rounded-full shimmer"
+                                style={{ width: `${levelInfo.progress}%` }}
+                            />
+                        </div>
+                        {levelInfo.nextLevel && (
+                            <p className="text-xs text-amber-100 mt-2 text-center">
+                                ✨ {levelInfo.nextLevel - stats.totalXP} XP to next level
+                            </p>
+                        )}
                     </div>
-                    <div className="text-right">
-                        <p className="text-amber-100 text-sm">Total XP</p>
-                        <p className="text-2xl font-bold">{stats.totalXP}</p>
-                    </div>
-                </div>
-                
-                {/* Progress Bar */}
-                <div>
-                    <div className="flex justify-between text-xs mb-1">
-                        <span>Level {levelInfo.level}</span>
-                        {levelInfo.nextLevel && <span>Level {levelInfo.level + 1}</span>}
-                    </div>
-                    <div className="h-3 bg-white/30 rounded-full overflow-hidden">
-                        <div 
-                            className="h-full bg-white transition-all duration-500"
-                            style={{ width: `${levelInfo.progress}%` }}
-                        />
-                    </div>
-                    {levelInfo.nextLevel && (
-                        <p className="text-xs text-amber-100 mt-1 text-center">
-                            {levelInfo.nextLevel - stats.totalXP} XP to next level
-                        </p>
-                    )}
                 </div>
             </div>
 
             {/* Stats Overview */}
-            <Card>
+            <Card variant="gradient">
                 <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
                     <Star size={18} className="text-brand-blue" />
                     Your Progress
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-800">{stats.totalTransactions}</p>
-                        <p className="text-xs text-slate-600">Transactions</p>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center shadow-md">
+                        <p className="text-3xl font-bold text-brand-blue">{stats.totalTransactions}</p>
+                        <p className="text-xs text-slate-600 font-medium">Transactions</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-800">{stats.scamsIdentified}</p>
-                        <p className="text-xs text-slate-600">Scams Spotted</p>
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl p-4 text-center shadow-md">
+                        <p className="text-3xl font-bold text-red-500">{stats.scamsIdentified}</p>
+                        <p className="text-xs text-slate-600 font-medium">Scams Spotted</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-800">{stats.qrScans}</p>
-                        <p className="text-xs text-slate-600">QR Scans</p>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center shadow-md">
+                        <p className="text-3xl font-bold text-purple-500">{stats.qrScans}</p>
+                        <p className="text-xs text-slate-600 font-medium">QR Scans</p>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-800">{stats.billsPaid}</p>
-                        <p className="text-xs text-slate-600">Bills Paid</p>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center shadow-md">
+                        <p className="text-3xl font-bold text-brand-green">{stats.billsPaid}</p>
+                        <p className="text-xs text-slate-600 font-medium">Bills Paid</p>
                     </div>
                 </div>
             </Card>
@@ -81,30 +84,30 @@ const Achievements = () => {
                         return (
                             <div
                                 key={achievement.id}
-                                className={`rounded-xl p-4 border-2 transition-colors ${
+                                className={`rounded-2xl p-4 border-2 transition-all duration-300 ${
                                     isUnlocked 
-                                        ? 'bg-green-50 border-green-200' 
-                                        : 'bg-slate-50 border-slate-200 opacity-70'
+                                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-md hover:shadow-lg' 
+                                        : 'bg-slate-50 border-slate-200 opacity-70 hover:opacity-90'
                                 }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`text-3xl ${!isUnlocked && 'grayscale opacity-50'}`}>
+                                    <div className={`text-4xl ${!isUnlocked && 'grayscale opacity-50'} transition-transform hover:scale-110`}>
                                         {achievement.icon}
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2">
-                                            <p className={`font-semibold ${isUnlocked ? 'text-green-800' : 'text-slate-600'}`}>
+                                            <p className={`font-bold ${isUnlocked ? 'text-green-800' : 'text-slate-600'}`}>
                                                 {achievement.title}
                                             </p>
                                             {isUnlocked ? (
-                                                <CheckCircle size={16} className="text-green-500" />
+                                                <CheckCircle size={18} className="text-green-500" />
                                             ) : (
                                                 <Lock size={14} className="text-slate-400" />
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-600">{achievement.description}</p>
                                     </div>
-                                    <div className={`text-right ${isUnlocked ? 'text-green-600' : 'text-slate-400'}`}>
+                                    <div className={`text-right px-3 py-1 rounded-full ${isUnlocked ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
                                         <p className="font-bold">+{achievement.xp}</p>
                                         <p className="text-xs">XP</p>
                                     </div>
@@ -116,8 +119,9 @@ const Achievements = () => {
             </div>
 
             {/* Encouragement */}
-            <Card className="bg-blue-50 border-blue-200 text-center">
-                <p className="text-blue-800">
+            <Card variant="gradient" className="border-blue-200 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5"></div>
+                <p className="text-lg font-semibold text-blue-800 relative z-10">
                     {unlockedAchievements.length < 3 
                         ? "Keep practicing! You're doing great! 💪"
                         : unlockedAchievements.length < 6

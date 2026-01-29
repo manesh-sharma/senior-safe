@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrReader } from 'react-qr-reader'; // Using the installed library
+import { Scanner } from '@yudiel/react-qr-scanner';
 import { Camera, X } from 'lucide-react';
 
 // NOTE: On desktop/without HTTPS, camera might fail. 
@@ -7,15 +7,20 @@ import { Camera, X } from 'lucide-react';
 const QRScanner = ({ onScan, onClose }) => {
     const [error, setError] = useState(null);
 
-    const handleResult = (result, error) => {
-        if (result) {
-            onScan(result?.text);
+    const handleScan = (result) => {
+        if (result && result.length > 0) {
+            onScan(result[0].rawValue);
         }
-        if (error) {
-            // Only log critical errors, ignore "no code found" frame noise
-            if (error?.message?.includes("Permission")) {
-                setError("Camera permission denied.");
-            }
+    };
+
+    const handleError = (err) => {
+        console.error('QR Scanner error:', err);
+        if (err?.message?.includes("Permission") || err?.name === 'NotAllowedError') {
+            setError("Camera permission denied. Please allow camera access.");
+        } else if (err?.name === 'NotFoundError') {
+            setError("No camera found on this device.");
+        } else {
+            setError("Camera not available. Use simulate buttons below.");
         }
     };
 
@@ -33,22 +38,28 @@ const QRScanner = ({ onScan, onClose }) => {
 
                 <div className="relative h-80 bg-black">
                     {!error ? (
-                        <QrReader
-                            onResult={handleResult}
+                        <Scanner
+                            onScan={handleScan}
+                            onError={handleError}
                             constraints={{ facingMode: 'environment' }}
-                            className="w-full h-full object-cover"
-                            containerStyle={{ height: '100%' }}
-                            videoStyle={{ objectFit: 'cover' }}
+                            styles={{
+                                container: { height: '100%', width: '100%' },
+                                video: { objectFit: 'cover' }
+                            }}
+                            allowMultiple={false}
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-white p-4 text-center">
                             <Camera size={48} className="mb-2 text-red-500" />
-                            <p>{error}</p>
+                            <p className="mb-2">{error}</p>
+                            <p className="text-sm text-slate-400">Use the simulate buttons below to test.</p>
                         </div>
                     )}
 
                     {/* Overlay Guide */}
-                    <div className="absolute inset-0 border-4 border-brand-blue/50 pointer-events-none m-12 rounded-lg animate-pulse" />
+                    {!error && (
+                        <div className="absolute inset-0 border-4 border-brand-blue/50 pointer-events-none m-12 rounded-lg animate-pulse" />
+                    )}
                 </div>
 
                 <div className="p-4 bg-slate-50 flex flex-col gap-2">
