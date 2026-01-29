@@ -1,171 +1,224 @@
-import React, { useState, useEffect } from 'react';
-import { Scanner } from '@yudiel/react-qr-scanner';
+import React, { useState, useEffect, useRef } from 'react';
 import { Camera, X, RefreshCw } from 'lucide-react';
+import { BrowserQRCodeReader } from '@zxing/browser';
 
-// NOTE: On desktop/without HTTPS, camera might fail. 
-// We provide a "Simulate Scan" button for testing.
 const QRScanner = ({ onScan, onClose }) => {
     const [error, setError] = useState(null);
-    const [cameraStarted, setCameraStarted] = useState(false);
-    const [permissionStatus, setPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
+    const [isScanning, setIsScanning] = useState(false);
+    const videoRef = useRef(null);
+    const streamRef = useRef(null);
+    const readerRef = useRef(null);
 
-    // Check camera permission on mount
-    useEffect(() => {
-        checkCameraPermission();
-    }, []);
-
-    const checkCameraPermission = async () => {
-        try {
-            // Check if we can query permissions
-            if (navigator.permissions && navigator.permissions.query) {
-                const result = await navigator.permissions.query({ name: 'camera' });
-                setPermissionStatus(result.state);
-                
-                // Listen for permission changes
-                result.onchange = () => {
-                    setPermissionStatus(result.state);
-                };
-            }
-        } catch (err) {
-            // Some browsers don't support permission query for camera
-            console.log('Permission query not supported, will request on start');
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
         }
+        if (readerRef.current) {
+            readerRef.current = null;
+        }
+        setIsScanning(false);
     };
 
-    const requestCameraAccess = async () => {
+    const startCamera = async () => {
         setError(null);
+        
         try {
-            // Request camera access explicitly
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'environment' } 
+            // First, get camera stream
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { 
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
             });
             
-            // Stop the stream immediately - we just wanted to get permission
-            stream.getTracks().forEach(track => track.stop());
+            streamRef.current = stream;
             
-            // Now start the scanner
-            setCameraStarted(true);
-            setPermissionStatus('granted');
-        } catch (err) {
-            console.error('Camera access error:', err);
-            
-            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                setError("Camera permission denied. Please allow camera access in your browser settings.");
-                setPermissionStatus('denied');
-            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                setError("No camera found on this device.");
-            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-                setError("Camera is being used by another app. Please close other apps using the camera and try again.");
-            } else if (err.message?.includes('overlay') || err.message?.includes('bubble')) {
-                setError("Please close any screen overlays, chat bubbles, or dimming apps, then try again.");
-            } else {
-                setError(`Camera error: ${err.message || 'Unknown error'}. Try the simulate buttons below.`);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.setAttribute('playsinline', 'true');
+                await videoRef.current.play();
+                setIsScanning(true);
+                
+                // Start QR code detection
+                startQRDetection();
             }
+        } catch (err) {
+            console.error('Camera error:', err);
+            handleCameraError(err);
         }
     };
 
-    const handleScan = (result) => {
-        if (result && result.length > 0) {
-            onScan(result[0].rawValue);
+    const startQRDetection = async () => {
+        if (!videoRef.current) return;
+
+        try {
+            const codeReader = new BrowserQRCodeReader();
+            readerRef.current = codeReader;
+
+            // Continuously decode from video
+            const controls = await codeReader.decodeFromVideoElement(
+                videoRef.current,
+                (result, error) => {
+                    if (result) {
+                        stopCamera();
+                        onScan(result.getText());
+                    }
+                    // Ignore errors during scanning - they're expected when no QR is visible
+                }
+            );
+        } catch (err) {
+            console.error('QR detection error:', err);
+            // Don't show error for detection issues - camera is still working
         }
     };
 
-    const handleError = (err) => {
-        console.error('QR Scanner error:', err);
-        if (err?.message?.includes("Permission") || err?.name === 'NotAllowedError') {
-            setError("Camera permission denied. Please allow camera access.");
-        } else if (err?.name === 'NotFoundError') {
+    const handleCameraError = (err) => {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            setError("Camera permission denied. Please allow camera access in browser settings, then refresh.");
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
             setError("No camera found on this device.");
-        } else if (err?.message?.includes('overlay') || err?.message?.includes('bubble')) {
-            setError("Please close any screen overlays or chat bubbles, then try again.");
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+            setError("Camera is busy. Close other apps using camera and try again.");
+        } else if (err.name === 'OverconstrainedError') {
+            setError("Camera doesn't support required settings. Trying fallback...");
+            // Try with simpler constraints
+            startCameraFallback();
         } else {
-            setError("Camera not available. Use simulate buttons below.");
+            setError(`Camera error: ${err.message}. Use simulate buttons below.`);
         }
-        setCameraStarted(false);
     };
 
-    const retryCamera = () => {
-        setError(null);
-        setCameraStarted(false);
-        requestCameraAccess();
+    const startCameraFallback = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true
+            });
+            
+            streamRef.current = stream;
+            
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.setAttribute('playsinline', 'true');
+                await videoRef.current.play();
+                setIsScanning(true);
+                setError(null);
+                startQRDetection();
+            }
+        } catch (err) {
+            console.error('Fallback camera error:', err);
+            setError("Could not access camera. Use simulate buttons below.");
+        }
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            stopCamera();
+        };
+    }, []);
+
+    const handleClose = () => {
+        stopCamera();
+        onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden relative">
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+            {/* Header */}
+            <div className="bg-slate-900 p-4 flex items-center justify-between">
+                <h3 className="text-white font-bold text-lg">Scan QR Code</h3>
                 <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-10 bg-white/50 p-2 rounded-full text-slate-900"
+                    onClick={handleClose}
+                    className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30"
                 >
                     <X size={24} />
                 </button>
+            </div>
 
-                <h3 className="text-center py-4 font-bold text-lg bg-slate-100">Scan QR Code</h3>
+            {/* Camera View */}
+            <div className="flex-1 relative bg-black flex items-center justify-center">
+                {!isScanning && !error && (
+                    <div className="text-center p-6">
+                        <Camera size={64} className="mx-auto mb-4 text-blue-400" />
+                        <p className="text-white text-lg mb-4">Ready to scan</p>
+                        <button
+                            onClick={startCamera}
+                            className="bg-blue-800 text-white px-8 py-4 rounded-xl font-bold text-xl hover:bg-blue-900 transition-colors shadow-lg"
+                        >
+                            📷 Start Camera
+                        </button>
+                        <p className="text-slate-400 text-sm mt-4">
+                            Close chat bubbles & overlay apps first
+                        </p>
+                    </div>
+                )}
 
-                <div className="relative h-80 bg-black">
-                    {!cameraStarted && !error ? (
-                        // Show start camera button
-                        <div className="flex flex-col items-center justify-center h-full text-white p-4 text-center">
-                            <Camera size={64} className="mb-4 text-blue-400" />
-                            <p className="mb-4 text-lg">Ready to scan QR code</p>
-                            <button
-                                onClick={requestCameraAccess}
-                                className="bg-blue-800 text-white px-6 py-3 rounded-xl font-bold text-lg hover:bg-blue-900 transition-colors"
-                            >
-                                📷 Start Camera
-                            </button>
-                            <p className="text-xs text-slate-400 mt-3">
-                                Tip: Close any chat bubbles or overlay apps first
-                            </p>
-                        </div>
-                    ) : cameraStarted && !error ? (
-                        <Scanner
-                            onScan={handleScan}
-                            onError={handleError}
-                            constraints={{ facingMode: 'environment' }}
-                            styles={{
-                                container: { height: '100%', width: '100%' },
-                                video: { objectFit: 'cover' }
-                            }}
-                            allowMultiple={false}
+                {isScanning && (
+                    <>
+                        <video
+                            ref={videoRef}
+                            className="w-full h-full object-cover"
+                            playsInline
+                            muted
+                            autoPlay
                         />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-white p-4 text-center">
-                            <Camera size={48} className="mb-2 text-red-500" />
-                            <p className="mb-4 text-sm">{error}</p>
-                            <button
-                                onClick={retryCamera}
-                                className="flex items-center gap-2 bg-blue-800 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-900 transition-colors"
-                            >
-                                <RefreshCw size={18} />
-                                Try Again
-                            </button>
-                            <p className="text-xs text-slate-400 mt-3">Or use simulate buttons below</p>
+                        {/* Scanning overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-64 h-64 border-4 border-blue-500 rounded-2xl relative">
+                                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-xl" />
+                                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-xl" />
+                                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-xl" />
+                                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-xl" />
+                                {/* Scanning line animation */}
+                                <div className="absolute left-2 right-2 h-0.5 bg-blue-500 animate-pulse top-1/2" />
+                            </div>
                         </div>
-                    )}
+                        <p className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
+                            Point at QR code
+                        </p>
+                    </>
+                )}
 
-                    {/* Overlay Guide */}
-                    {cameraStarted && !error && (
-                        <div className="absolute inset-0 border-4 border-blue-800/50 pointer-events-none m-12 rounded-lg animate-pulse" />
-                    )}
-                </div>
+                {error && (
+                    <div className="text-center p-6">
+                        <Camera size={48} className="mx-auto mb-4 text-red-500" />
+                        <p className="text-white mb-4">{error}</p>
+                        <button
+                            onClick={startCamera}
+                            className="flex items-center gap-2 mx-auto bg-blue-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-900"
+                        >
+                            <RefreshCw size={20} />
+                            Try Again
+                        </button>
+                    </div>
+                )}
+            </div>
 
-                <div className="p-4 bg-slate-100 flex flex-col gap-2">
-                    <p className="text-xs text-center text-slate-600">
-                        Point camera at a SeniorSafe or Cash Voucher QR code.
-                    </p>
-                    {/* Fallback for Desktop/Testing */}
+            {/* Footer with simulate buttons */}
+            <div className="bg-slate-900 p-4 space-y-2">
+                <p className="text-slate-400 text-xs text-center">
+                    Camera not working? Use test buttons:
+                </p>
+                <div className="flex gap-2">
                     <button
-                        onClick={() => onScan('{"type":"SENIORSAFE_CASH","amt":50}')}
-                        className="text-xs text-blue-800 underline text-center"
+                        onClick={() => {
+                            stopCamera();
+                            onScan('{"type":"SENIORSAFE_CASH","amt":50}');
+                        }}
+                        className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm"
                     >
-                        [Simulate Scan: ₹50 Voucher]
+                        ✅ Test: ₹50 Voucher
                     </button>
                     <button
-                        onClick={() => onScan('http://fakepayment.com')}
-                        className="text-xs text-red-500 underline text-center"
+                        onClick={() => {
+                            stopCamera();
+                            onScan('http://fakepayment.com');
+                        }}
+                        className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-sm"
                     >
-                        [Simulate Scan: Fake Link]
+                        ⚠️ Test: Fake Link
                     </button>
                 </div>
             </div>
